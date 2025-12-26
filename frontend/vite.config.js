@@ -17,7 +17,7 @@ export default defineConfig({
 	
 	// 构建配置
 	build: {
-		outDir: 'docs',  // 改为 docs 以支持 GitHub Pages 传统部署
+		outDir: '../docs',  // 输出到项目根目录的 docs 文件夹
 		assetsDir: 'assets',
 		sourcemap: false,
 		emptyOutDir: true,
