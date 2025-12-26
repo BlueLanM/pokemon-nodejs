@@ -1,0 +1,14 @@
+# 前端
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# 后端
+server/node_modules/
+server/__pycache__/
+server/.env
+server/venv/
+
+# 其他
+.DS_Store
+*.log
