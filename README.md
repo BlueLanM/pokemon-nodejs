@@ -1,12 +1,44 @@
-# 项目名称
+# React + Node.js Full Stack Project
 
 ## 项目结构
-- frontend: 前端应用
-- server: 后端API服务
+- `frontend/` - React 前端应用
+- `server/` - Node.js + Express 后端API
 
-## 启动方式
-### 前端
-cd frontend && npm install && npm run dev
+## 开发环境启动
 
-### 后端
-cd server && npm install && npm start
+### 🚀 一键启动（推荐）
+
+#### 方法一：使用 npm 脚本
+```bash
+# 首次运行，安装所有依赖
+npm run install:all
+
+# 同时启动前端和后端
+npm run dev
+```
+
+#### 方法二：使用批处理文件（Windows）
+双击根目录的 `start.bat` 文件，会自动在两个窗口中启动前后端。
+
+### 手动分别启动
+
+#### 后端
+```bash
+cd server
+npm install
+npm run dev
+```
+后端运行在: http://localhost:5000
+
+#### 前端
+```bash
+cd frontend
+npm install
+npm run dev
+```
+前端运行在: http://localhost:5173
+
+## 技术栈
+- **前端**: React, Vite
+- **后端**: Node.js, Express
+- **其他**: CORS, dotenv
