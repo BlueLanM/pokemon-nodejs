@@ -11,6 +11,7 @@ router.get("/game/player/:playerId", gameController.getPlayerInfo);
 
 // 探索模块
 router.get("/game/explore", gameController.explore);
+router.post("/game/select-starter", gameController.selectStarter); // 选择初始宝可梦
 router.post("/game/catch", gameController.catchPokemon);
 
 // 战斗模块

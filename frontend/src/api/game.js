@@ -14,6 +14,10 @@ export const explore = () => {
   return request.get("/game/explore");
 };
 
+export const selectStarter = (playerId, pokemon) => {
+	return request.post("/game/select-starter", { playerId, pokemon });
+};
+
 export const catchPokemon = (playerId, pokemon, pokeballTypeId, playerPokemonId) => {
 	return request.post("/game/catch", { playerId, pokemon, pokeballTypeId, playerPokemonId });
 };

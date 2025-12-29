@@ -33,8 +33,8 @@ function App() {
 	};
 
 	const handleLogout = () => {
-		localStorage.removeItem('player');
-		localStorage.removeItem('playerId');
+		// 清除所有 localStorage 数据
+		localStorage.clear();
 		setPlayer(null);
 		setIsLoggedIn(false);
 		setCurrentView('game');

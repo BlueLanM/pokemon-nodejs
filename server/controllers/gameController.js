@@ -161,6 +161,41 @@ export const explore = async(req, res) => {
 	}
 };
 
+// 选择初始宝可梦（100%成功，不消耗精灵球）
+export const selectStarter = async(req, res) => {
+	try {
+		const { playerId, pokemon } = req.body;
+
+		// 检查玩家是否已经有宝可梦（防止重复选择）
+		const party = await GameModel.getPlayerParty(playerId);
+		if (party.length > 0) {
+			return res.status(400).json({
+				error: "你已经选择过初始宝可梦了！",
+				success: false
+			});
+		}
+
+		// 直接加入背包，100%成功
+		const partyId = await GameModel.addToParty(playerId, pokemon);
+
+		if (partyId) {
+			return res.json({
+				caught: true,
+				location: "party",
+				message: `恭喜！你选择了 ${pokemon.name} 作为初始宝可梦！`,
+				success: true
+			});
+		} else {
+			return res.status(500).json({
+				error: "选择初始宝可梦失败",
+				success: false
+			});
+		}
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
 // 捕捉宝可梦
 export const catchPokemon = async(req, res) => {
 	try {

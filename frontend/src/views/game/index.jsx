@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import * as gameAPI from "../../api/game";
 import Message from "../../components/Message";
 import Button from "../../components/Button";
+import Input from "../../components/Input";
 import Modal from "../../components/Modal";
 import Pokedex from "../pokedex";
 import "./index.css";
@@ -35,13 +36,14 @@ const PokemonGame = () => {
 
 	// 初始化或加载玩家
 	useEffect(() => {
-		const savedPlayerId = localStorage.getItem("pokemonGamePlayerId");
+		// 优先使用新的 playerId，兼容旧的 pokemonGamePlayerId
+		const savedPlayerId = localStorage.getItem("playerId") || localStorage.getItem("pokemonGamePlayerId");
 		if (savedPlayerId) {
-			// 检查是否需要数据迁移
-			const migrated = localStorage.getItem("partyDataMigrated");
+			// 检查是否需要数据迁移（针对当前玩家）
+			const migrated = localStorage.getItem(`partyDataMigrated_${savedPlayerId}`);
 			if (!migrated) {
 				loadPlayer(savedPlayerId, true); // 第一次加载时进行迁移
-				localStorage.setItem("partyDataMigrated", "true");
+				localStorage.setItem(`partyDataMigrated_${savedPlayerId}`, "true");
 			} else {
 				loadPlayer(savedPlayerId);
 			}
@@ -56,10 +58,12 @@ const PokemonGame = () => {
 			}
 
 			const data = await gameAPI.getPlayerInfo(playerId);
+			console.log("玩家数据加载:", data); // 添加调试日志
 			setPlayer(data.player);
-			setPlayerParty(data.party);
-			setItems(data.items);
+			setPlayerParty(data.party || []);
+			setItems(data.items || []);
 		} catch (error) {
+			console.error("加载玩家数据错误:", error);
 			Message.error("加载玩家数据失败");
 		}
 	};
@@ -330,12 +334,19 @@ const PokemonGame = () => {
 				attack: 15
 			};
 
-			await gameAPI.catchPokemon(player.id, starterPokemon, 1);
-			Message.success(`恭喜！你选择了 ${starter.name}！`);
-			// 等待加载玩家数据完成，这样会自动跳转到游戏主界面
-			await loadPlayer(player.id);
+			// 使用专门的选择初始精灵API，100%成功，不消耗精灵球
+			const result = await gameAPI.selectStarter(player.id, starterPokemon);
+			
+			if (result.success && result.caught) {
+				Message.success(`恭喜！你选择了 ${starter.name}！`);
+				// 重新加载玩家数据，确保背包更新
+				await loadPlayer(player.id);
+			} else {
+				Message.error(result.error || "选择失败，请重试");
+			}
 		} catch (error) {
-			Message.error("选择失败，请重试");
+			console.error("选择初始精灵错误:", error);
+			Message.error(error.error || "选择失败，请重试");
 		}
 	};
 
@@ -344,9 +355,9 @@ const PokemonGame = () => {
 		return (
 			<div className="pokemon-game">
 				<div className="create-player">
-					<h1>🎮 宝可梦文字游戏</h1>
+					<h1>🎮 宝可梦游戏</h1>
 					<p>欢迎来到宝可梦世界！</p>
-					<input
+					<Input
 						type="text"
 						placeholder="输入你的名字"
 						id="playerName"

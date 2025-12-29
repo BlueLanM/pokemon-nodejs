@@ -50,18 +50,22 @@ const Auth = ({ onLoginSuccess }) => {
 				response = await registerPlayer(username, password);
 			}
 
-			if (response.success) {
-				// 保存玩家信息到 localStorage
-				localStorage.setItem('player', JSON.stringify(response.player));
-				localStorage.setItem('playerId', response.player.id);
-				
-				setMessage(response.message);
-				
-				// 登录成功回调
-				setTimeout(() => {
-					onLoginSuccess(response.player);
-				}, 500);
-			}
+				if (response.success) {
+					// 清除旧的玩家数据
+					localStorage.clear();
+					
+					// 保存玩家信息到 localStorage
+					localStorage.setItem('player', JSON.stringify(response.player));
+					localStorage.setItem('playerId', response.player.id);
+					localStorage.setItem('pokemonGamePlayerId', response.player.id); // 兼容游戏组件
+					
+					setMessage(response.message);
+					
+					// 登录成功回调
+					setTimeout(() => {
+						onLoginSuccess(response.player);
+					}, 500);
+				}
 		} catch (error) {
 			setMessage(error.message || (isLogin ? '登录失败' : '注册失败'));
 		} finally {
