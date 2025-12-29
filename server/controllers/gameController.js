@@ -268,8 +268,8 @@ export const catchPokemon = async(req, res) => {
 
 			if (partyId) {
 				return res.json({
-					caught: true,
 					catchReward,
+					caught: true,
 					expResult,
 					location: "party",
 					message: `使用${pokeball.name}成功捕捉 ${pokemon.name}！已加入背包。`,
@@ -280,8 +280,8 @@ export const catchPokemon = async(req, res) => {
 				// 背包满了，放入仓库
 				await GameModel.addToStorage(playerId, pokemon);
 				return res.json({
-					caught: true,
 					catchReward,
+					caught: true,
 					expResult,
 					location: "storage",
 					message: `使用${pokeball.name}成功捕捉 ${pokemon.name}！背包已满，已放入仓库。`,
