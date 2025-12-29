@@ -1,5 +1,9 @@
-import pool from "../server/config/database.js";
+import dotenv from "dotenv";
 import bcrypt from "bcrypt";
+import mysql from "mysql2/promise";
+
+// 加载环境变量
+dotenv.config({ path: "./server/.env" });
 
 /**
  * 数据库修复脚本
@@ -7,6 +11,24 @@ import bcrypt from "bcrypt";
  * 2. 重置被截断的密码
  */
 async function fixDatabase() {
+	// 直接创建数据库连接
+	const pool = mysql.createPool({
+		connectionLimit: 10,
+		database: process.env.MYSQL_DATABASE || process.env.DB_NAME,
+		host: process.env.MYSQLHOST || process.env.DB_HOST,
+		password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD,
+		port: process.env.MYSQLPORT || process.env.DB_PORT || 3306,
+		queueLimit: 0,
+		user: process.env.MYSQLUSER || process.env.DB_USER,
+		waitForConnections: true
+	});
+
+	console.log("🔌 数据库连接信息:");
+	console.log(`   主机: ${process.env.MYSQLHOST || process.env.DB_HOST}`);
+	console.log(`   端口: ${process.env.MYSQLPORT || process.env.DB_PORT || 3306}`);
+	console.log(`   用户: ${process.env.MYSQLUSER || process.env.DB_USER}`);
+	console.log(`   数据库: ${process.env.MYSQL_DATABASE || process.env.DB_NAME}\n`);
+
 	const connection = await pool.getConnection();
 
 	try {

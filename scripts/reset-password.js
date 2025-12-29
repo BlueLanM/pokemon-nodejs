@@ -1,11 +1,27 @@
-import pool from "../server/config/database.js";
+import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import readline from "readline";
+import mysql from "mysql2/promise";
+
+// 加载环境变量
+dotenv.config({ path: "./server/.env" });
 
 /**
  * 重置指定用户的密码
  */
 async function resetPassword() {
+	// 直接创建数据库连接
+	const pool = mysql.createPool({
+		host: process.env.MYSQLHOST || process.env.DB_HOST,
+		port: process.env.MYSQLPORT || process.env.DB_PORT || 3306,
+		user: process.env.MYSQLUSER || process.env.DB_USER,
+		password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD,
+		database: process.env.MYSQL_DATABASE || process.env.DB_NAME,
+		waitForConnections: true,
+		connectionLimit: 10,
+		queueLimit: 0
+	});
+
 	const rl = readline.createInterface({
 		input: process.stdin,
 		output: process.stdout
