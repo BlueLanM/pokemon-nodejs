@@ -267,6 +267,9 @@ export const catchPokemon = async(req, res) => {
 		const caught = randomValue <= finalCatchRate;
 
 		if (caught) {
+			// 捕获成功后回复满血
+			pokemon.hp = pokemon.max_hp;
+			
 			// 尝试加入背包
 			const partyId = await GameModel.addToParty(playerId, pokemon);
 
