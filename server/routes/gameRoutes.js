@@ -45,4 +45,18 @@ router.get("/game/special-badges/:playerId", gameController.getSpecialBadges);
 // 管理员功能
 router.post("/game/admin/set-money", gameController.adminSetPlayerMoney);
 
+// 管理员 - 商店物品管理
+router.get("/game/admin/pokeballs", gameController.adminGetPokeballTypes);
+router.get("/game/admin/pokeball/:id", gameController.adminGetPokeballType);
+router.post("/game/admin/pokeball", gameController.adminAddPokeballType);
+router.put("/game/admin/pokeball/:id", gameController.adminUpdatePokeballType);
+router.delete("/game/admin/pokeball/:id", gameController.adminDeletePokeballType);
+
+// 管理员 - 道馆管理
+router.get("/game/admin/gyms", gameController.adminGetGyms);
+router.get("/game/admin/gym/:id", gameController.adminGetGym);
+router.post("/game/admin/gym", gameController.adminAddGym);
+router.put("/game/admin/gym/:id", gameController.adminUpdateGym);
+router.delete("/game/admin/gym/:id", gameController.adminDeleteGym);
+
 export default router;

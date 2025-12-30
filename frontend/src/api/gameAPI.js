@@ -216,3 +216,91 @@ export const getAllPlayers = () => {
 		method: 'GET'
 	});
 };
+
+// ========== 管理员 - 商店物品管理 ==========
+
+// 获取所有精灵球类型
+export const adminGetPokeballTypes = () => {
+	return request({
+		url: '/game/admin/pokeballs',
+		method: 'GET'
+	});
+};
+
+// 获取单个精灵球类型
+export const adminGetPokeballType = (id) => {
+	return request({
+		url: `/game/admin/pokeball/${id}`,
+		method: 'GET'
+	});
+};
+
+// 添加精灵球类型
+export const adminAddPokeballType = (data) => {
+	return request({
+		url: '/game/admin/pokeball',
+		method: 'POST',
+		data
+	});
+};
+
+// 更新精灵球类型
+export const adminUpdatePokeballType = (id, data) => {
+	return request({
+		url: `/game/admin/pokeball/${id}`,
+		method: 'PUT',
+		data
+	});
+};
+
+// 删除精灵球类型
+export const adminDeletePokeballType = (id) => {
+	return request({
+		url: `/game/admin/pokeball/${id}`,
+		method: 'DELETE'
+	});
+};
+
+// ========== 管理员 - 道馆管理 ==========
+
+// 获取所有道馆
+export const adminGetGyms = () => {
+	return request({
+		url: '/game/admin/gyms',
+		method: 'GET'
+	});
+};
+
+// 获取单个道馆
+export const adminGetGym = (id) => {
+	return request({
+		url: `/game/admin/gym/${id}`,
+		method: 'GET'
+	});
+};
+
+// 添加道馆
+export const adminAddGym = (data) => {
+	return request({
+		url: '/game/admin/gym',
+		method: 'POST',
+		data
+	});
+};
+
+// 更新道馆
+export const adminUpdateGym = (id, data) => {
+	return request({
+		url: `/game/admin/gym/${id}`,
+		method: 'PUT',
+		data
+	});
+};
+
+// 删除道馆
+export const adminDeleteGym = (id) => {
+	return request({
+		url: `/game/admin/gym/${id}`,
+		method: 'DELETE'
+	});
+};

@@ -13,7 +13,7 @@ import "./index.scss"
 
 const Pokemon = () => {
 	// 页面视图状态
-	const [currentView, setCurrentView] = useState('pokemons'); // 'pokemons' | 'players' | 'storage'
+	const [currentView, setCurrentView] = useState('pokemons'); // 'pokemons' | 'players' | 'storage' | 'shop' | 'gyms'
 	
 	// 宝可梦管理相关状态
 	const [pokemons, setPokemons] = useState([]);
@@ -34,6 +34,37 @@ const Pokemon = () => {
 	// 仓库管理相关状态
 	const [storage, setStorage] = useState([]);
 	const [party, setParty] = useState([]);
+	
+	// 商店物品管理相关状态
+	const [shopItems, setShopItems] = useState([]);
+	const [shopModalVisible, setShopModalVisible] = useState(false);
+	const [shopModalMode, setShopModalMode] = useState('add'); // 'add' | 'edit' | 'detail'
+	const [currentShopItem, setCurrentShopItem] = useState(null);
+	const [shopFormData, setShopFormData] = useState({
+		name: '',
+		catchRate: 0,
+		price: 0,
+		image: ''
+	});
+	
+	// 道馆管理相关状态
+	const [gyms, setGyms] = useState([]);
+	const [gymModalVisible, setGymModalVisible] = useState(false);
+	const [gymModalMode, setGymModalMode] = useState('add'); // 'add' | 'edit' | 'detail'
+	const [currentGym, setCurrentGym] = useState(null);
+	const [gymFormData, setGymFormData] = useState({
+		name: '',
+		leader_name: '',
+		pokemon_id: 0,
+		pokemon_name: '',
+		pokemon_sprite: '',
+		level: 20,
+		hp: 100,
+		max_hp: 100,
+		attack: 25,
+		reward_money: 500,
+		badge_name: ''
+	});
 
 	const { values, handleChange, reset, setValues } = useForm({
 		name: '',
@@ -224,11 +255,169 @@ const Pokemon = () => {
 		setStorage([]);
 	};
 
+	// ========== 商店物品管理功能 ==========
+	const fetchShopItems = async () => {
+		try {
+			setLoading(true);
+			const data = await gameAPI.adminGetPokeballTypes();
+			setShopItems(data?.items || []);
+		} catch (err) {
+			message.error('获取商店物品失败！');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleAddShopItem = () => {
+		setShopFormData({
+			name: '',
+			catchRate: 0,
+			price: 0,
+			image: ''
+		});
+		setShopModalMode('add');
+		setShopModalVisible(true);
+	};
+
+	const handleEditShopItem = async (item) => {
+		setShopFormData({
+			name: item.name,
+			catchRate: item.catch_rate,
+			price: item.price,
+			image: item.image || ''
+		});
+		setCurrentShopItem(item);
+		setShopModalMode('edit');
+		setShopModalVisible(true);
+	};
+
+	const handleDeleteShopItem = async (id) => {
+		try {
+			await gameAPI.adminDeletePokeballType(id);
+			message.success('删除成功！');
+			fetchShopItems();
+		} catch (error) {
+			message.error('删除失败！');
+		}
+	};
+
+	const handleShopSubmit = async () => {
+		if (!shopFormData.name || !shopFormData.price) {
+			message.warning('请填写完整信息');
+			return;
+		}
+		
+		try {
+			setIsAdding(true);
+			if (shopModalMode === 'edit') {
+				await gameAPI.adminUpdatePokeballType(currentShopItem.id, shopFormData);
+				message.success('更新成功！');
+			} else {
+				await gameAPI.adminAddPokeballType(shopFormData);
+				message.success('添加成功！');
+			}
+			setShopModalVisible(false);
+			fetchShopItems();
+		} catch (error) {
+			message.error(shopModalMode === 'edit' ? '更新失败' : '添加失败');
+		} finally {
+			setIsAdding(false);
+		}
+	};
+
+	// ========== 道馆管理功能 ==========
+	const fetchGyms = async () => {
+		try {
+			setLoading(true);
+			const data = await gameAPI.adminGetGyms();
+			setGyms(data?.gyms || []);
+		} catch (err) {
+			message.error('获取道馆列表失败！');
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleAddGym = () => {
+		setGymFormData({
+			name: '',
+			leader_name: '',
+			pokemon_id: 0,
+			pokemon_name: '',
+			pokemon_sprite: '',
+			level: 20,
+			hp: 100,
+			max_hp: 100,
+			attack: 25,
+			reward_money: 500,
+			badge_name: ''
+		});
+		setGymModalMode('add');
+		setGymModalVisible(true);
+	};
+
+	const handleEditGym = async (gym) => {
+		setGymFormData({
+			name: gym.name,
+			leader_name: gym.leader_name,
+			pokemon_id: gym.pokemon_id,
+			pokemon_name: gym.pokemon_name,
+			pokemon_sprite: gym.pokemon_sprite || '',
+			level: gym.level,
+			hp: gym.hp,
+			max_hp: gym.max_hp,
+			attack: gym.attack,
+			reward_money: gym.reward_money,
+			badge_name: gym.badge_name
+		});
+		setCurrentGym(gym);
+		setGymModalMode('edit');
+		setGymModalVisible(true);
+	};
+
+	const handleDeleteGym = async (id) => {
+		try {
+			await gameAPI.adminDeleteGym(id);
+			message.success('删除成功！');
+			fetchGyms();
+		} catch (error) {
+			message.error('删除失败！');
+		}
+	};
+
+	const handleGymSubmit = async () => {
+		if (!gymFormData.name || !gymFormData.leader_name || !gymFormData.badge_name) {
+			message.warning('请填写完整信息');
+			return;
+		}
+		
+		try {
+			setIsAdding(true);
+			if (gymModalMode === 'edit') {
+				await gameAPI.adminUpdateGym(currentGym.id, gymFormData);
+				message.success('更新成功！');
+			} else {
+				await gameAPI.adminAddGym(gymFormData);
+				message.success('添加成功！');
+			}
+			setGymModalVisible(false);
+			fetchGyms();
+		} catch (error) {
+			message.error(gymModalMode === 'edit' ? '更新失败' : '添加失败');
+		} finally {
+			setIsAdding(false);
+		}
+	};
+
 	useEffect(() => {
 		if (currentView === 'pokemons') {
 			fetchPokemons();
 		} else if (currentView === 'players') {
 			fetchPlayers();
+		} else if (currentView === 'shop') {
+			fetchShopItems();
+		} else if (currentView === 'gyms') {
+			fetchGyms();
 		}
 	}, [currentView]);
 
@@ -285,6 +474,18 @@ const Pokemon = () => {
 					onClick={() => setCurrentView('players')}
 				>
 					👤 玩家管理
+				</Button>
+				<Button 
+					type={currentView === 'shop' ? 'primary' : 'default'}
+					onClick={() => setCurrentView('shop')}
+				>
+					🏪 商店物品
+				</Button>
+				<Button 
+					type={currentView === 'gyms' ? 'primary' : 'default'}
+					onClick={() => setCurrentView('gyms')}
+				>
+					🏛️ 道馆管理
 				</Button>
 			</div>
 
@@ -442,6 +643,292 @@ const Pokemon = () => {
 									value={newMoney}
 									onChange={(e) => setNewMoney(Number(e.target.value))}
 								/>
+							</div>
+						</div>
+					</Modal>
+				</>
+			)}
+
+			{/* 商店物品管理视图 */}
+			{currentView === 'shop' && (
+				<>
+					<div className="pokemon-header">
+						<div className="pokemon-header-left">
+							<Button type="primary" onClick={handleAddShopItem}>添加物品</Button>
+						</div>
+						<div className="pokemon-header-right">
+							<h3 style={{ margin: 0 }}>商店物品 (共 {shopItems.length} 个)</h3>
+						</div>
+					</div>
+					<Table 
+						rowKey="id" 
+						dataSource={shopItems} 
+						columns={[
+							{
+								title: 'ID',
+								dataIndex: 'id',
+							},
+							{
+								title: '物品名称',
+								dataIndex: 'name',
+							},
+							{
+								title: '捕获率',
+								dataIndex: 'catch_rate',
+								render: (text) => `${(text * 100).toFixed(0)}%`
+							},
+							{
+								title: '价格',
+								dataIndex: 'price',
+								render: (text) => `💰 ${text}`
+							},
+							{
+								title: '图片',
+								dataIndex: 'image',
+								render: (text) => text ? <img src={text} alt="item" style={{ width: '40px', height: '40px' }} /> : '-'
+							},
+							{
+								title: "操作",
+								dataIndex: "action",
+								render: (text, record) => (
+									<div className="pokemon-action">
+										<Button type="primary" onClick={() => handleEditShopItem(record)}>编辑</Button>
+										<Popconfirm
+											title="确定要删除这个物品吗？"
+											description="删除后将无法恢复"
+											onConfirm={() => handleDeleteShopItem(record.id)}
+											placement="top"
+										>
+											<Button type="primary" danger>删除</Button>
+										</Popconfirm>
+									</div>
+								)
+							}
+						]}
+						loading={loading} 
+					/>
+					
+					{/* 商店物品弹窗 */}
+					<Modal
+						title={shopModalMode === 'edit' ? "编辑物品" : "添加物品"}
+						visible={shopModalVisible}
+						onOk={handleShopSubmit}
+						onCancel={() => setShopModalVisible(false)}
+						confirmLoading={isAdding}
+						okText="确定"
+					>
+						<div className="pokemon-modal-content">
+							<div className="pokemon-flex">
+								物品名称：<Input 
+										placeholder="例如: 精灵球" 
+										width={420}
+										value={shopFormData.name}
+										onChange={(e) => setShopFormData({...shopFormData, name: e.target.value})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								捕获率：<Input 
+										type="number"
+										placeholder="0-1之间，例如: 0.3" 
+										width={420}
+										value={shopFormData.catchRate}
+										onChange={(e) => setShopFormData({...shopFormData, catchRate: parseFloat(e.target.value)})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								价格：<Input 
+										type="number"
+										placeholder="例如: 100" 
+										width={420}
+										value={shopFormData.price}
+										onChange={(e) => setShopFormData({...shopFormData, price: parseInt(e.target.value)})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								图片URL：<Input 
+										placeholder="图片链接" 
+										width={420}
+										value={shopFormData.image}
+										onChange={(e) => setShopFormData({...shopFormData, image: e.target.value})}
+									/>
+							</div>
+						</div>
+					</Modal>
+				</>
+			)}
+
+			{/* 道馆管理视图 */}
+			{currentView === 'gyms' && (
+				<>
+					<div className="pokemon-header">
+						<div className="pokemon-header-left">
+							<Button type="primary" onClick={handleAddGym}>添加道馆</Button>
+						</div>
+						<div className="pokemon-header-right">
+							<h3 style={{ margin: 0 }}>道馆列表 (共 {gyms.length} 个)</h3>
+						</div>
+					</div>
+					<Table 
+						rowKey="id" 
+						dataSource={gyms} 
+						columns={[
+							{
+								title: 'ID',
+								dataIndex: 'id',
+							},
+							{
+								title: '道馆名称',
+								dataIndex: 'name',
+							},
+							{
+								title: '馆主',
+								dataIndex: 'leader_name',
+							},
+							{
+								title: '宝可梦',
+								dataIndex: 'pokemon_name',
+							},
+							{
+								title: '等级',
+								dataIndex: 'level',
+								render: (text) => `Lv.${text}`
+							},
+							{
+								title: 'HP',
+								dataIndex: 'max_hp',
+							},
+							{
+								title: '攻击',
+								dataIndex: 'attack',
+							},
+							{
+								title: '奖励金币',
+								dataIndex: 'reward_money',
+								render: (text) => `💰 ${text}`
+							},
+							{
+								title: '徽章',
+								dataIndex: 'badge_name',
+							},
+							{
+								title: "操作",
+								dataIndex: "action",
+								render: (text, record) => (
+									<div className="pokemon-action">
+										<Button type="primary" onClick={() => handleEditGym(record)}>编辑</Button>
+										<Popconfirm
+											title="确定要删除这个道馆吗？"
+											description="删除后将无法恢复"
+											onConfirm={() => handleDeleteGym(record.id)}
+											placement="top"
+										>
+											<Button type="primary" danger>删除</Button>
+										</Popconfirm>
+									</div>
+								)
+							}
+						]}
+						loading={loading} 
+					/>
+					
+					{/* 道馆弹窗 */}
+					<Modal
+						title={gymModalMode === 'edit' ? "编辑道馆" : "添加道馆"}
+						visible={gymModalVisible}
+						onOk={handleGymSubmit}
+						onCancel={() => setGymModalVisible(false)}
+						confirmLoading={isAdding}
+						okText="确定"
+						width={700}
+					>
+						<div className="pokemon-modal-content">
+							<div className="pokemon-flex">
+								道馆名称：<Input 
+										placeholder="例如: 岩石道馆" 
+										width={420}
+										value={gymFormData.name}
+										onChange={(e) => setGymFormData({...gymFormData, name: e.target.value})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								馆主名称：<Input 
+										placeholder="例如: 小刚" 
+										width={420}
+										value={gymFormData.leader_name}
+										onChange={(e) => setGymFormData({...gymFormData, leader_name: e.target.value})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								宝可梦ID：<Input 
+										type="number"
+										placeholder="例如: 74" 
+										width={420}
+										value={gymFormData.pokemon_id}
+										onChange={(e) => setGymFormData({...gymFormData, pokemon_id: parseInt(e.target.value)})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								宝可梦名称：<Input 
+										placeholder="例如: geodude" 
+										width={420}
+										value={gymFormData.pokemon_name}
+										onChange={(e) => setGymFormData({...gymFormData, pokemon_name: e.target.value})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								精灵图片URL：<Input 
+										placeholder="图片链接" 
+										width={420}
+										value={gymFormData.pokemon_sprite}
+										onChange={(e) => setGymFormData({...gymFormData, pokemon_sprite: e.target.value})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								等级：<Input 
+										type="number"
+										placeholder="例如: 20" 
+										width={420}
+										value={gymFormData.level}
+										onChange={(e) => setGymFormData({...gymFormData, level: parseInt(e.target.value)})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								HP：<Input 
+										type="number"
+										placeholder="例如: 100" 
+										width={420}
+										value={gymFormData.hp}
+										onChange={(e) => {
+											const val = parseInt(e.target.value);
+											setGymFormData({...gymFormData, hp: val, max_hp: val});
+										}}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								攻击力：<Input 
+										type="number"
+										placeholder="例如: 25" 
+										width={420}
+										value={gymFormData.attack}
+										onChange={(e) => setGymFormData({...gymFormData, attack: parseInt(e.target.value)})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								奖励金币：<Input 
+										type="number"
+										placeholder="例如: 500" 
+										width={420}
+										value={gymFormData.reward_money}
+										onChange={(e) => setGymFormData({...gymFormData, reward_money: parseInt(e.target.value)})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								徽章名称：<Input 
+										placeholder="例如: 灰色徽章" 
+										width={420}
+										value={gymFormData.badge_name}
+										onChange={(e) => setGymFormData({...gymFormData, badge_name: e.target.value})}
+									/>
 							</div>
 						</div>
 					</Modal>

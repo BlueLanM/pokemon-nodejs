@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 import pool from "../config/database.js";
 import bcrypt from "bcrypt";
 
@@ -772,6 +773,113 @@ export const restorePokemonHp = async(partyId) => {
 			"UPDATE player_party SET hp = max_hp WHERE id = ?",
 			[partyId]
 		);
+		return { success: true };
+	} catch (error) {
+		return { message: error.message, success: false };
+	}
+};
+
+// ========== 管理员 - 商店物品管理 ==========
+
+// 添加新的精灵球类型
+export const addPokeballType = async(name, catchRate, price, image) => {
+	try {
+		const [result] = await pool.query(
+			"INSERT INTO pokeball_types (name, catch_rate, price, image) VALUES (?, ?, ?, ?)",
+			[name, catchRate, price, image]
+		);
+		return { id: result.insertId, success: true };
+	} catch (error) {
+		return { message: error.message, success: false };
+	}
+};
+
+// 更新精灵球类型
+export const updatePokeballType = async(id, name, catchRate, price, image) => {
+	try {
+		await pool.query(
+			"UPDATE pokeball_types SET name = ?, catch_rate = ?, price = ?, image = ? WHERE id = ?",
+			[name, catchRate, price, image, id]
+		);
+		return { success: true };
+	} catch (error) {
+		return { message: error.message, success: false };
+	}
+};
+
+// 删除精灵球类型
+export const deletePokeballType = async(id) => {
+	try {
+		// 检查是否有玩家拥有该类型物品
+		const [items] = await pool.query(
+			"SELECT COUNT(*) as count FROM player_items WHERE pokeball_type_id = ?",
+			[id]
+		);
+
+		if (items[0].count > 0) {
+			return { message: "无法删除，有玩家拥有该物品", success: false };
+		}
+
+		await pool.query("DELETE FROM pokeball_types WHERE id = ?", [id]);
+		return { success: true };
+	} catch (error) {
+		return { message: error.message, success: false };
+	}
+};
+
+// 获取单个精灵球类型详情
+export const getPokeballType = async(id) => {
+	const [rows] = await pool.query("SELECT * FROM pokeball_types WHERE id = ?", [id]);
+	return rows[0];
+};
+
+// ========== 管理员 - 道馆管理 ==========
+
+// 添加新道馆
+export const addGym = async(gymData) => {
+	try {
+		const { name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name } = gymData;
+		const [result] = await pool.query(
+			`INSERT INTO gyms (name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			[name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name]
+		);
+		return { id: result.insertId, success: true };
+	} catch (error) {
+		return { message: error.message, success: false };
+	}
+};
+
+// 更新道馆
+export const updateGym = async(id, gymData) => {
+	try {
+		const { name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name } = gymData;
+		await pool.query(
+			`UPDATE gyms SET name = ?, leader_name = ?, pokemon_id = ?, pokemon_name = ?, pokemon_sprite = ?, 
+			 level = ?, hp = ?, max_hp = ?, attack = ?, reward_money = ?, badge_name = ?
+			 WHERE id = ?`,
+			[name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name, id]
+		);
+		return { success: true };
+	} catch (error) {
+		return { message: error.message, success: false };
+	}
+};
+
+// 删除道馆
+export const deleteGym = async(id) => {
+	try {
+		// 检查是否有玩家获得该道馆徽章
+		const [badges] = await pool.query(
+			"SELECT COUNT(*) as count FROM player_badges WHERE gym_id = ?",
+			[id]
+		);
+
+		if (badges[0].count > 0) {
+			return { message: "无法删除，有玩家已获得该道馆徽章", success: false };
+		}
+
+		await pool.query("DELETE FROM gyms WHERE id = ?", [id]);
 		return { success: true };
 	} catch (error) {
 		return { message: error.message, success: false };

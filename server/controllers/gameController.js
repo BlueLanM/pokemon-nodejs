@@ -676,3 +676,195 @@ export const adminSetPlayerMoney = async(req, res) => {
 		res.status(500).json({ error: error.message });
 	}
 };
+
+// ========== 管理员 - 商店物品管理 ==========
+
+// 获取所有精灵球类型
+export const adminGetPokeballTypes = async(req, res) => {
+	try {
+		const pokeballs = await GameModel.getAllPokeballTypes();
+		res.json({ items: pokeballs, success: true });
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 获取单个精灵球类型
+export const adminGetPokeballType = async(req, res) => {
+	try {
+		const { id } = req.params;
+		const pokeball = await GameModel.getPokeballType(id);
+		if (!pokeball) {
+			return res.status(404).json({ error: "精灵球类型不存在" });
+		}
+		res.json({ data: pokeball, success: true });
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 添加精灵球类型
+export const adminAddPokeballType = async(req, res) => {
+	try {
+		const { name, catchRate, price, image } = req.body;
+
+		if (!name || catchRate === undefined || !price) {
+			return res.status(400).json({ error: "名称、捕获率和价格不能为空" });
+		}
+
+		const result = await GameModel.addPokeballType(name, catchRate, price, image || "");
+
+		if (result.success) {
+			res.json({
+				id: result.id,
+				message: "添加成功",
+				success: true
+			});
+		} else {
+			res.status(400).json({ error: result.message });
+		}
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 更新精灵球类型
+export const adminUpdatePokeballType = async(req, res) => {
+	try {
+		const { id } = req.params;
+		const { name, catchRate, price, image } = req.body;
+
+		if (!name || catchRate === undefined || !price) {
+			return res.status(400).json({ error: "名称、捕获率和价格不能为空" });
+		}
+
+		const result = await GameModel.updatePokeballType(id, name, catchRate, price, image || "");
+
+		if (result.success) {
+			res.json({
+				message: "更新成功",
+				success: true
+			});
+		} else {
+			res.status(400).json({ error: result.message });
+		}
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 删除精灵球类型
+export const adminDeletePokeballType = async(req, res) => {
+	try {
+		const { id } = req.params;
+
+		const result = await GameModel.deletePokeballType(id);
+
+		if (result.success) {
+			res.json({
+				message: "删除成功",
+				success: true
+			});
+		} else {
+			res.status(400).json({ error: result.message });
+		}
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// ========== 管理员 - 道馆管理 ==========
+
+// 获取所有道馆
+export const adminGetGyms = async(req, res) => {
+	try {
+		const gyms = await GameModel.getAllGyms();
+		res.json({ gyms, success: true });
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 获取单个道馆
+export const adminGetGym = async(req, res) => {
+	try {
+		const { id } = req.params;
+		const gym = await GameModel.getGym(id);
+		if (!gym) {
+			return res.status(404).json({ error: "道馆不存在" });
+		}
+		res.json({ data: gym, success: true });
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 添加道馆
+export const adminAddGym = async(req, res) => {
+	try {
+		const gymData = req.body;
+
+		if (!gymData.name || !gymData.leader_name || !gymData.badge_name) {
+			return res.status(400).json({ error: "道馆名称、馆主和徽章名称不能为空" });
+		}
+
+		const result = await GameModel.addGym(gymData);
+
+		if (result.success) {
+			res.json({
+				id: result.id,
+				message: "添加成功",
+				success: true
+			});
+		} else {
+			res.status(400).json({ error: result.message });
+		}
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 更新道馆
+export const adminUpdateGym = async(req, res) => {
+	try {
+		const { id } = req.params;
+		const gymData = req.body;
+
+		if (!gymData.name || !gymData.leader_name || !gymData.badge_name) {
+			return res.status(400).json({ error: "道馆名称、馆主和徽章名称不能为空" });
+		}
+
+		const result = await GameModel.updateGym(id, gymData);
+
+		if (result.success) {
+			res.json({
+				message: "更新成功",
+				success: true
+			});
+		} else {
+			res.status(400).json({ error: result.message });
+		}
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 删除道馆
+export const adminDeleteGym = async(req, res) => {
+	try {
+		const { id } = req.params;
+
+		const result = await GameModel.deleteGym(id);
+
+		if (result.success) {
+			res.json({
+				message: "删除成功",
+				success: true
+			});
+		} else {
+			res.status(400).json({ error: result.message });
+		}
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
