@@ -143,7 +143,7 @@ export const explore = async(req, res) => {
 			max_hp: Math.floor(Math.random() * 30) + 30,
 			name: pokemonInfo.name,
 			name_en: pokemonInfo.name_en,
-			sprite: `https://raw.githubusercontent.com/NightCatSama/pokedex/main/images/gif/${pokemonInfo.id}.gif`,
+			sprite: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${pokemonInfo.id}.gif`,
 			sprite_pixel: `https://raw.githubusercontent.com/NightCatSama/pokedex/main/images/pixel/${pokemonInfo.id}.png`,
 			type1: pokemonInfo.type1,
 			type2: pokemonInfo.type2
