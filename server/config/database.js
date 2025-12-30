@@ -22,7 +22,7 @@ const pool = mysql.createPool({
 export async function initializeDatabase() {
 	try {
 		const connection = await pool.getConnection();
-		
+
 		// 创建 pokemons 表
 		const createTableSQL = `
 			CREATE TABLE IF NOT EXISTS pokemons (
@@ -36,12 +36,12 @@ export async function initializeDatabase() {
 				created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 			)
 		`;
-		
+
 		await connection.execute(createTableSQL);
 		console.log("✅ 数据表初始化成功!");
-		
+
 		// 检查是否有数据，如果没有则插入示例数据
-		const [rows] = await connection.execute('SELECT COUNT(*) as count FROM pokemons');
+		const [rows] = await connection.execute("SELECT COUNT(*) as count FROM pokemons");
 		if (rows[0].count === 0) {
 			const insertSQL = `
 				INSERT INTO pokemons (name, type, hp, attack, defense, speed) VALUES
@@ -53,7 +53,7 @@ export async function initializeDatabase() {
 			await connection.execute(insertSQL);
 			console.log("✅ 示例数据插入成功!");
 		}
-		
+
 		connection.release();
 		return true;
 	} catch (error) {
@@ -70,10 +70,10 @@ export async function testConnection() {
 		const dbName = process.env.MYSQLDATABASE || process.env.DB_NAME || "pokemon";
 		console.log(`📦 数据库: ${dbName}`);
 		connection.release();
-		
+
 		// 自动初始化数据库表
 		await initializeDatabase();
-		
+
 		return true;
 	} catch (error) {
 		console.error("❌ MySQL 数据库连接失败:", error.message);
