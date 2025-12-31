@@ -968,6 +968,7 @@ const Pokemon = () => {
 							}
 						]}
 						loading={loading} 
+						scrollY={700}
 					/>
 					
 					{/* 道馆弹窗 */}
