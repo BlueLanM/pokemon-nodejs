@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as GameModel from "../models/gameModel.js";
 import * as GrowthRateService from "../services/growthRateService.js";
 import { readFileSync } from "fs";
