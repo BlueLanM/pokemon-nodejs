@@ -1,6 +1,8 @@
+/* eslint-disable sort-keys */
 /* eslint-disable camelcase */
 import pool from "../config/database.js";
 import bcrypt from "bcrypt";
+import * as GrowthRateService from "../services/growthRateService.js";
 
 // 密码加密的盐值轮数
 const SALT_ROUNDS = 10;
@@ -127,6 +129,16 @@ export const initGameTables = async() => {
 			// 字段已存在，忽略错误
 		}
 
+		// 添加level_exp字段（当前等级进度经验）
+		try {
+			await connection.query(`
+        ALTER TABLE player_party 
+        ADD COLUMN level_exp INT DEFAULT 0 AFTER exp
+      `);
+		} catch (err) {
+			// 字段已存在，忽略错误
+		}
+
 		// 玩家仓库表
 		await connection.query(`
       CREATE TABLE IF NOT EXISTS player_storage (
@@ -196,12 +208,22 @@ export const initGameTables = async() => {
 			// 字段已存在，忽略错误
 		}
 
+		// 添加 reward_exp 字段（如果表已存在但没有该字段）
+		try {
+			await connection.query(`
+        ALTER TABLE gyms 
+        ADD COLUMN reward_exp INT DEFAULT 100 AFTER reward_money
+      `);
+		} catch (err) {
+			// 字段已存在，忽略错误
+		}
+
 		// 插入初始道馆数据
 		await connection.query(`
       INSERT IGNORE INTO gyms (id, name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name, badge_image) VALUES
       (1, '岩石道馆', '小刚', 74, 'geodude', 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/74.png', 15, 80, 80, 20, 500, '灰色徽章', 'https://raw.githubusercontent.com/BlueLanM/pokemon-nodejs/main/images/Boulder_Badge.png'),
       (2, '水系道馆', '小霞', 120, 'staryu', 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/120.png', 20, 100, 100, 25, 800, '蓝色徽章', 'https://raw.githubusercontent.com/BlueLanM/pokemon-nodejs/main/images/Cascade_Badge.png'),
-      (3, '电系道馆', '马志士', 25, 'pikachu', 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png', 25, 120, 120, 30, 1000, '橙色徽章', 'https://raw.githubusercontent.com/BlueLanM/pokemon-nodejs/main/images/Thunder_Badge.png')
+      (3, '电系道馆', '马 kritik', 25, 'pikachu', 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png', 25, 120, 120, 30, 1000, '橙色徽章', 'https://raw.githubusercontent.com/BlueLanM/pokemon-nodejs/main/images/Thunder_Badge.png')
     `);
 
 		// 更新现有道馆数据的 max_hp（如果 max_hp 为空或0）
@@ -407,6 +429,64 @@ export const setPlayerMoney = async(playerId, amount) => {
 	}
 };
 
+// 管理员删除玩家（级联删除所有相关数据）
+export const deletePlayer = async(playerId) => {
+	const connection = await pool.getConnection();
+	try {
+		await connection.beginTransaction();
+
+		// 删除玩家的背包精灵
+		await connection.query(
+			"DELETE FROM player_party WHERE player_id = ?",
+			[playerId]
+		);
+
+		// 删除玩家的仓库精灵
+		await connection.query(
+			"DELETE FROM player_storage WHERE player_id = ?",
+			[playerId]
+		);
+
+		// 删除玩家的物品
+		await connection.query(
+			"DELETE FROM player_items WHERE player_id = ?",
+			[playerId]
+		);
+
+		// 删除玩家的徽章
+		await connection.query(
+			"DELETE FROM player_badges WHERE player_id = ?",
+			[playerId]
+		);
+
+		// 删除玩家的图鉴记录
+		await connection.query(
+			"DELETE FROM player_pokedex WHERE player_id = ?",
+			[playerId]
+		);
+
+		// 删除玩家的地图解锁记录
+		await connection.query(
+			"DELETE FROM player_map_unlocks WHERE player_id = ?",
+			[playerId]
+		);
+
+		// 最后删除玩家本身
+		await connection.query(
+			"DELETE FROM players WHERE id = ?",
+			[playerId]
+		);
+
+		await connection.commit();
+		return { success: true };
+	} catch (error) {
+		await connection.rollback();
+		return { message: error.message, success: false };
+	} finally {
+		connection.release();
+	}
+};
+
 // 背包相关操作
 export const getPlayerParty = async(playerId) => {
 	const [rows] = await pool.query(
@@ -426,7 +506,7 @@ export const addToParty = async(playerId, pokemon) => {
 		return null; // 背包已满(只能有1只主战精灵)
 	}
 
-	const position = 1; // 固定为1,因为只有一只主战精灵
+	const position = 1; // 固定为1,因为只有一只参战精灵
 	const [result] = await pool.query(
 		`INSERT INTO player_party (player_id, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, position)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -635,17 +715,25 @@ export const getLeaderboard = async() => {
 // 经验值和升级系统
 // 计算升级所需经验值（平衡版）
 // 使用二次增长曲线，确保后期升级更有挑战性
+// 使用 PokeAPI 的 growth-rate 接口获取经验值
+// 这个函数保留用于同步调用的兼容性
 export const getExpForLevel = (level) => {
-	if (level <= 1) return 100;
-	// 基础公式: 100 + (level - 1) * 15 + (level - 1)^2 * 2
-	// 1级: 100, 5级: 232, 10级: 490, 20级: 1385, 50级: 6035, 100级: 25585
+	if (level <= 1) return 0;
+	// 使用回退计算（原有公式）
 	const baseExp = 100;
 	const linearGrowth = (level - 1) * 15;
 	const quadraticGrowth = Math.pow(level - 1, 2) * 2;
 	return Math.floor(baseExp + linearGrowth + quadraticGrowth);
 };
 
+// 使用 PokeAPI 异步获取经验值
+export const getExpForLevelAsync = async(level) => {
+	return await GrowthRateService.getExpForLevel(level);
+};
+
 // 给宝可梦添加经验值（满级100级）
+// 使用 PokeAPI growth-rate/2 (medium) 的增长率
+// 新机制：level_exp 存储当前等级进度，升级时清零
 export const addExpToPokemon = async(partyId, expGained) => {
 	try {
 		// 获取当前宝可梦信息
@@ -667,6 +755,7 @@ export const addExpToPokemon = async(partyId, expGained) => {
 				attackGained: 0,
 				expGained: 0,
 				hpGained: 0,
+				levelExp: poke.level_exp || 0,
 				leveledUp: false,
 				levelsGained: 0,
 				message: `${poke.pokemon_name} 已经达到满级 ${MAX_LEVEL} 级！`,
@@ -677,7 +766,10 @@ export const addExpToPokemon = async(partyId, expGained) => {
 			};
 		}
 
-		let currentExp = (poke.exp || 0) + expGained;
+		// 累积总经验（用于记录）
+		const currentTotalExp = (poke.exp || 0) + expGained;
+		// 当前等级进度经验
+		let currentLevelExp = (poke.level_exp || 0) + expGained;
 		let currentLevel = poke.level;
 		let currentMaxHp = poke.max_hp;
 		let currentAttack = poke.attack;
@@ -686,52 +778,74 @@ export const addExpToPokemon = async(partyId, expGained) => {
 		const originalMaxHp = poke.max_hp;
 		const originalAttack = poke.attack;
 
-		// 检查是否升级（最高升到100级）
-		while (currentLevel < MAX_LEVEL && currentExp >= getExpForLevel(currentLevel)) {
-			currentExp -= getExpForLevel(currentLevel);
-			currentLevel++;
-			levelsGained++;
-			leveledUp = true;
+		// 循环检查是否升级（可能连续升多级）
+		while (currentLevel < MAX_LEVEL) {
+			// 获取下一级所需经验
+			const nextLevelRequiredExp = await GrowthRateService.getExpForLevel(currentLevel + 1);
+			const currentLevelRequiredExp = await GrowthRateService.getExpForLevel(currentLevel);
+			const expNeededForNextLevel = nextLevelRequiredExp - currentLevelRequiredExp;
 
-			// 升级时提升属性（随等级增加而增加）
-			// HP增长: 基础 4-8，每10级额外+1（最高+14）
-			const hpBonus = Math.floor(currentLevel / 10);
-			const hpGain = Math.floor(Math.random() * 5) + 4 + hpBonus; // 4-8 + 等级加成
-			currentMaxHp += hpGain;
+			// 检查当前等级进度经验是否足够升级
+			if (currentLevelExp >= expNeededForNextLevel) {
+				// 升级！
+				leveledUp = true;
+				levelsGained++;
+				currentLevel++;
 
-			// 攻击力增长: 基础 2-4，每15级额外+1（最高+10）
-			const attackBonus = Math.floor(currentLevel / 15);
-			const attackGain = Math.floor(Math.random() * 3) + 2 + attackBonus; // 2-4 + 等级加成
-			currentAttack += attackGain;
+				// 扣除本级所需经验，剩余经验继续累积
+				currentLevelExp -= expNeededForNextLevel;
+
+				// 使用增长率服务计算属性增长（每次升1级）
+				const statGrowth = GrowthRateService.calculateStatGrowth(1, currentLevel);
+				currentMaxHp += statGrowth.hpGained;
+				currentAttack += statGrowth.attackGained;
+			} else {
+				// 经验不足，停止升级
+				break;
+			}
 		}
 
-		// 如果达到满级，清空多余经验
+		// 如果达到满级，清空 level_exp
 		if (currentLevel >= MAX_LEVEL) {
-			currentExp = 0;
 			currentLevel = MAX_LEVEL;
+			currentLevelExp = 0;
+		}
+
+		// 计算升级所需经验（用于前端显示进度条）
+		let expNeededForNextLevel = 0;
+		if (currentLevel < MAX_LEVEL) {
+			const nextLevelRequiredExp = await GrowthRateService.getExpForLevel(currentLevel + 1);
+			const currentLevelRequiredExp = await GrowthRateService.getExpForLevel(currentLevel);
+			expNeededForNextLevel = nextLevelRequiredExp - currentLevelRequiredExp;
 		}
 
 		// 更新数据库
+		// exp: 累积总经验（用于统计）
+		// level_exp: 当前等级进度经验（用于显示）
 		await pool.query(
 			`UPDATE player_party 
-       SET exp = ?, level = ?, max_hp = ?, hp = ?, attack = ?
+       SET exp = ?, level_exp = ?, level = ?, max_hp = ?, hp = ?, attack = ?
        WHERE id = ?`,
-			[currentExp, currentLevel, currentMaxHp, currentMaxHp, currentAttack, partyId]
+			[currentTotalExp, currentLevelExp, currentLevel, currentMaxHp, currentMaxHp, currentAttack, partyId]
 		);
 
 		return {
 			attackGained: currentAttack - originalAttack,
+			currentLevelExp, // 当前等级的进度经验（例如：100）
 			expGained,
+			expNeededForNextLevel, // 升到下一级需要的总经验（例如：1000）
 			hpGained: currentMaxHp - originalMaxHp,
+			levelExp: currentLevelExp, // 保留兼容性
 			leveledUp,
 			levelsGained,
 			message: leveledUp
 				? `${poke.pokemon_name} 升到了 Lv.${currentLevel}！HP +${currentMaxHp - originalMaxHp}, 攻击 +${currentAttack - originalAttack}`
-				: `${poke.pokemon_name} 获得了 ${expGained} 经验值！`,
+				: `${poke.pokemon_name} 获得了 ${expGained} 经验值！当前 ${currentLevelExp}/${expNeededForNextLevel}`,
 			newAttack: currentAttack,
 			newLevel: currentLevel,
 			newMaxHp: currentMaxHp,
-			success: true
+			success: true,
+			totalExp: currentTotalExp
 		};
 	} catch (error) {
 		return { message: error.message, success: false };
@@ -915,11 +1029,11 @@ export const getPokeballType = async(id) => {
 // 添加新道馆
 export const addGym = async(gymData) => {
 	try {
-		const { name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name, badge_image } = gymData;
+		const { name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, reward_exp, badge_name, badge_image } = gymData;
 		const [result] = await pool.query(
-			`INSERT INTO gyms (name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name, badge_image)
-			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			[name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name, badge_image]
+			`INSERT INTO gyms (name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, reward_exp, badge_name, badge_image)
+			 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			[name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, reward_exp || 100, badge_name, badge_image]
 		);
 		return { id: result.insertId, success: true };
 	} catch (error) {
@@ -930,12 +1044,12 @@ export const addGym = async(gymData) => {
 // 更新道馆
 export const updateGym = async(id, gymData) => {
 	try {
-		const { name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name, badge_image } = gymData;
+		const { name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, reward_exp, badge_name, badge_image } = gymData;
 		await pool.query(
 			`UPDATE gyms SET name = ?, leader_name = ?, pokemon_id = ?, pokemon_name = ?, pokemon_sprite = ?, 
-			 level = ?, hp = ?, max_hp = ?, attack = ?, reward_money = ?, badge_name = ?, badge_image = ?
+			 level = ?, hp = ?, max_hp = ?, attack = ?, reward_money = ?, reward_exp = ?, badge_name = ?, badge_image = ?
 			 WHERE id = ?`,
-			[name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, badge_name, badge_image, id]
+			[name, leader_name, pokemon_id, pokemon_name, pokemon_sprite, level, hp, max_hp, attack, reward_money, reward_exp || 100, badge_name, badge_image, id]
 		);
 		return { success: true };
 	} catch (error) {

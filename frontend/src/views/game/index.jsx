@@ -7,14 +7,55 @@ import Modal from "../../components/Modal";
 import Pokedex from "../pokedex";
 import "./index.scss";
 
-// 计算升级所需经验值（与后端保持一致）
-const getExpForNextLevel = (level) => {
-	if (level >= 100) return 0; // 满级
-	if (level <= 1) return 100;
-	const baseExp = 100;
-	const linearGrowth = (level - 1) * 15;
-	const quadraticGrowth = Math.pow(level - 1, 2) * 2;
-	return Math.floor(baseExp + linearGrowth + quadraticGrowth);
+// 经验值表缓存（从 PokeAPI growth-rate/2 加载）
+let expTableCache = null;
+
+// 加载经验值表
+const loadExpTable = async () => {
+	if (!expTableCache) {
+		try {
+			const data = await gameAPI.getExpTable(1, 100);
+			expTableCache = data.expTable || [];
+		} catch (error) {
+			console.error('加载经验值表失败:', error);
+			expTableCache = [];
+		}
+	}
+	return expTableCache;
+};
+
+// 根据等级获取该等级所需的总经验值
+const getExpForLevel = (level) => {
+	if (!expTableCache || expTableCache.length === 0) return 0;
+	const levelData = expTableCache.find(l => l.level === level);
+	return levelData ? levelData.experience : 0;
+};
+
+// 格式化经验值显示（当前级别进度/升级所需经验）
+// 显示方式：当前级别进度 / 本级升级所需经验
+const formatExpDisplay = (levelExp, currentLevel) => {
+	if (currentLevel >= 100) return '满级';
+	
+	// 如果经验值表还没加载，返回当前级别进度
+	if (!expTableCache || expTableCache.length === 0) {
+		return `${levelExp || 0}`;
+	}
+	
+	// 获取当前等级和下一等级所需的累积总经验
+	const currentLevelTotalExp = getExpForLevel(currentLevel);
+	const nextLevelTotalExp = getExpForLevel(currentLevel + 1);
+	
+	// 如果获取不到数据，返回当前级别进度
+	if (nextLevelTotalExp === 0) {
+		return `${levelExp || 0}`;
+	}
+	
+	// 计算本级升级所需经验（下一级总经验 - 当前级总经验）
+	const expNeededForNextLevel = nextLevelTotalExp - currentLevelTotalExp;
+	
+	// 显示格式：当前级别进度 / 本级升级所需经验
+	// 例如：level=10时，显示 100/1000 (表示当前级别有100经验，还需要900经验升到level 11)
+	return `${levelExp || 0}/${expNeededForNextLevel}`;
 };
 
 const PokemonGame = () => {
@@ -42,6 +83,9 @@ const PokemonGame = () => {
 
 	// 初始化或加载玩家
 	useEffect(() => {
+		// 加载经验值表
+		loadExpTable();
+		
 		// 优先使用新的 playerId，兼容旧的 pokemonGamePlayerId
 		const savedPlayerId = localStorage.getItem("playerId") || localStorage.getItem("pokemonGamePlayerId");
 		if (savedPlayerId) {
@@ -523,7 +567,7 @@ const PokemonGame = () => {
 								</div>
 								<p>HP: {selectedPokemon.hp} / {selectedPokemon.max_hp}</p>
 								<p>攻击: {selectedPokemon.attack}</p>
-								<p>EXP: {selectedPokemon.exp || 0}/{getExpForNextLevel(selectedPokemon.level || 5)}</p>
+								<p>EXP: {formatExpDisplay(selectedPokemon.level_exp || 0, selectedPokemon.level || 5)}</p>
 							</div>
 						)}
 					</div>
@@ -828,7 +872,7 @@ const PokemonGame = () => {
 									<p>等级: Lv.{playerParty[0].level}</p>
 									<p>HP: {playerParty[0].hp}/{playerParty[0].max_hp}</p>
 									<p>攻击: {playerParty[0].attack}</p>
-									<p>经验: {playerParty[0].exp || 0}/{getExpForNextLevel(playerParty[0].level)}</p>
+									<p>经验: {formatExpDisplay(playerParty[0].level_exp || 0, playerParty[0].level)}</p>
 									{playerParty[0].level >= 100 && <p className="max-level">⭐ 满级</p>}
 								</Tilt>
 						) : (

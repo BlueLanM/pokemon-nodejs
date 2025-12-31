@@ -1,4 +1,5 @@
 import * as GameModel from "../models/gameModel.js";
+import * as GrowthRateService from "../services/growthRateService.js";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
@@ -295,14 +296,14 @@ export const catchPokemon = async(req, res) => {
 			let expResult = null;
 			if (playerPokemonId) {
 				const wildLevel = pokemon.level || 10;
-				const baseExp = wildLevel * 15; // 捕捉获得的经验值略少于击败
+				const baseExp = wildLevel * 5; // 捕捉获得的经验值略少于击败
 				const expGained = Math.floor(baseExp * rewardMultiplier);
 				expResult = await GameModel.addExpToPokemon(playerPokemonId, expGained);
 			}
 
 			// 计算捕捉金币奖励 (基于野生宝可梦等级和地图倍率)
 			const wildLevel = pokemon.level || 10;
-			const baseMoney = Math.floor(wildLevel * 10 + Math.random() * 20 + 10);
+			const baseMoney = Math.floor(wildLevel * 5 + Math.random() * 20 + 10);
 			const catchReward = Math.floor(baseMoney * rewardMultiplier);
 			await GameModel.updatePlayerMoney(playerId, catchReward);
 
@@ -362,7 +363,7 @@ export const attack = async(req, res) => {
 		// 根据攻击类型计算伤害
 		if (attackType === "fixed") {
 			// 宽恕伤害攻击 - 随机0-9点伤害
-			playerDamage = Math.floor(Math.random() * 10); // 0 到 9
+			playerDamage = Math.floor(Math.random() * 20); // 0 到 19
 			attackName = "宽恕攻击";
 		} else {
 			// 随机攻击 - 0到最大攻击力之间随机
@@ -407,9 +408,10 @@ export const attack = async(req, res) => {
 			const enemyLevel = enemyPokemon.level || 10;
 			let expGained;
 			if (isGym) {
-				expGained = enemyLevel * 50; // 道馆给更多经验，不受地图影响
+				// 道馆使用配置的奖励经验值，如果没有配置则使用默认计算
+				expGained = enemyPokemon.reward_exp || (enemyLevel * 50);
 			} else {
-				const baseExp = enemyLevel * 20;
+				const baseExp = enemyLevel * 5;
 				expGained = Math.floor(baseExp * rewardMultiplier);
 			}
 
@@ -719,6 +721,41 @@ export const adminSetPlayerMoney = async(req, res) => {
 			res.json({
 				message: `已将玩家 ${player.name} 的金币设置为 ${money}`,
 				money: player.money,
+				success: true
+			});
+		} else {
+			res.status(400).json({ error: result.message });
+		}
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 管理员删除玩家
+export const adminDeletePlayer = async(req, res) => {
+	try {
+		const { id } = req.params;
+
+		if (!id) {
+			return res.status(400).json({ error: "玩家ID不能为空" });
+		}
+
+		// 检查玩家是否存在
+		const player = await GameModel.getPlayer(id);
+		if (!player) {
+			return res.status(404).json({ error: "玩家不存在" });
+		}
+
+		// 防止删除管理员账号
+		if (player.is_admin) {
+			return res.status(403).json({ error: "不能删除管理员账号" });
+		}
+
+		const result = await GameModel.deletePlayer(id);
+
+		if (result.success) {
+			res.json({
+				message: `已成功删除玩家 ${player.name}`,
 				success: true
 			});
 		} else {
@@ -1062,6 +1099,64 @@ export const adminDeleteMap = async(req, res) => {
 		} else {
 			res.status(400).json({ error: result.message });
 		}
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// ========== 经验值增长率系统 ==========
+
+// 获取经验值表（用于查看和调试）
+export const getExpTable = async(req, res) => {
+	try {
+		const { minLevel = 1, maxLevel = 100 } = req.query;
+		const expTable = await GrowthRateService.getExpTable(
+			parseInt(minLevel),
+			parseInt(maxLevel)
+		);
+
+		res.json({
+			expTable,
+			growthRate: "medium (growth-rate/2)",
+			maxLevel: parseInt(maxLevel),
+			minLevel: parseInt(minLevel),
+			success: true,
+			totalLevels: expTable.length
+		});
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 获取指定等级所需的经验值
+export const getExpForLevel = async(req, res) => {
+	try {
+		const { level } = req.params;
+		const exp = await GrowthRateService.getExpForLevel(parseInt(level));
+
+		res.json({
+			exp,
+			growthRate: "medium (growth-rate/2)",
+			level: parseInt(level),
+			success: true
+		});
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+};
+
+// 根据经验值计算等级
+export const getLevelFromExp = async(req, res) => {
+	try {
+		const { exp } = req.params;
+		const levelInfo = await GrowthRateService.getLevelFromExp(parseInt(exp));
+
+		res.json({
+			...levelInfo,
+			growthRate: "medium (growth-rate/2)",
+			success: true,
+			totalExp: parseInt(exp)
+		});
 	} catch (error) {
 		res.status(500).json({ error: error.message });
 	}

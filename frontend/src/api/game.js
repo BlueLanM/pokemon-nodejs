@@ -84,3 +84,16 @@ export const unlockMap = (playerId, mapId) => {
 export const switchMap = (playerId, mapId) => {
   return request.post("/game/maps/switch", { playerId, mapId });
 };
+
+// 经验值系统
+export const getExpTable = (minLevel = 1, maxLevel = 100) => {
+  return request.get(`/game/exp-table?minLevel=${minLevel}&maxLevel=${maxLevel}`);
+};
+
+export const getExpForLevel = (level) => {
+  return request.get(`/game/exp-for-level/${level}`);
+};
+
+export const getLevelFromExp = (exp) => {
+  return request.get(`/game/level-from-exp/${exp}`);
+};

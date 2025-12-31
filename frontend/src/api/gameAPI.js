@@ -217,6 +217,14 @@ export const getAllPlayers = () => {
 	});
 };
 
+// 删除玩家（管理员）
+export const adminDeletePlayer = (id) => {
+	return request({
+		url: `/game/admin/player/${id}`,
+		method: 'DELETE'
+	});
+};
+
 // ========== 管理员 - 商店物品管理 ==========
 
 // 获取所有精灵球类型

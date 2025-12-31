@@ -44,6 +44,7 @@ router.get("/game/special-badges/:playerId", gameController.getSpecialBadges);
 
 // 管理员功能
 router.post("/game/admin/set-money", gameController.adminSetPlayerMoney);
+router.delete("/game/admin/player/:id", gameController.adminDeletePlayer);
 
 // 管理员 - 商店物品管理
 router.get("/game/admin/pokeballs", gameController.adminGetPokeballTypes);
@@ -71,5 +72,10 @@ router.get("/game/admin/map/:id", gameController.adminGetMap);
 router.post("/game/admin/map", gameController.adminAddMap);
 router.put("/game/admin/map/:id", gameController.adminUpdateMap);
 router.delete("/game/admin/map/:id", gameController.adminDeleteMap);
+
+// 经验值增长率系统
+router.get("/game/exp-table", gameController.getExpTable);
+router.get("/game/exp-for-level/:level", gameController.getExpForLevel);
+router.get("/game/level-from-exp/:exp", gameController.getLevelFromExp);
 
 export default router;

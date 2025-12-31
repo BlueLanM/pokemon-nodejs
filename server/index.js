@@ -5,6 +5,7 @@ import { testConnection } from "./config/database.js";
 import pokemonRoutes from "./routes/pokemonRoutes.js";
 import gameRoutes from "./routes/gameRoutes.js";
 import { initGameTables } from "./models/gameModel.js";
+import { preloadGrowthRateData } from "./services/growthRateService.js";
 
 dotenv.config();
 
@@ -40,4 +41,6 @@ app.listen(PORT, async() => {
 	await testConnection();
 	// 初始化游戏表
 	await initGameTables();
+	// 预加载增长率数据
+	await preloadGrowthRateData();
 });

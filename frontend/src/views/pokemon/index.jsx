@@ -63,6 +63,7 @@ const Pokemon = () => {
 		max_hp: 100,
 		attack: 25,
 		reward_money: 500,
+		reward_exp: 100,
 		badge_name: '',
 		badge_image: ''
 	});
@@ -249,6 +250,16 @@ const Pokemon = () => {
 		}
 	};
 
+	const handleDeletePlayer = async (player) => {
+		try {
+			await gameAPI.adminDeletePlayer(player.id);
+			message.success(`已成功删除玩家 ${player.name}！`);
+			fetchPlayers();
+		} catch (error) {
+			message.error(error.response?.data?.error || '删除失败！');
+		}
+	};
+
 	const closePlayerModal = () => {
 		setPlayerModalVisible(false);
 		setSelectedPlayer(null);
@@ -351,6 +362,7 @@ const Pokemon = () => {
 			max_hp: 100,
 			attack: 25,
 			reward_money: 500,
+			reward_exp: 100,
 			badge_name: '',
 			badge_image: ''
 		});
@@ -370,6 +382,7 @@ const Pokemon = () => {
 			max_hp: gym.max_hp,
 			attack: gym.attack,
 			reward_money: gym.reward_money,
+			reward_exp: gym.reward_exp || 100,
 			badge_name: gym.badge_name,
 			badge_image: gym.badge_image || ''
 		});
@@ -455,6 +468,14 @@ const Pokemon = () => {
 						setNewMoney(record.money);
 						setMoneyModalVisible(true);
 					}}>设置金币</Button>
+					<Popconfirm
+						title="确定要删除这个玩家吗？"
+						description={`删除玩家后无法恢复`}
+						onConfirm={() => handleDeletePlayer(record)}
+						placement="top"
+					>
+						<Button type="primary" danger>删除玩家</Button>
+					</Popconfirm>
 				</div>
 			)
 		}
@@ -810,6 +831,11 @@ const Pokemon = () => {
 								render: (text) => `💰 ${text}`
 							},
 							{
+								title: '奖励经验',
+								dataIndex: 'reward_exp',
+								render: (text) => `⭐ ${text || 100}`
+							},
+							{
 								title: '徽章',
 								dataIndex: 'badge_name',
 								render: (text, record) => (
@@ -937,6 +963,15 @@ const Pokemon = () => {
 										width={420}
 										value={gymFormData.reward_money}
 										onChange={(e) => setGymFormData({...gymFormData, reward_money: parseInt(e.target.value)})}
+									/>
+							</div>
+							<div className="pokemon-flex">
+								奖励经验：<Input 
+										type="number"
+										placeholder="例如: 100" 
+										width={420}
+										value={gymFormData.reward_exp}
+										onChange={(e) => setGymFormData({...gymFormData, reward_exp: parseInt(e.target.value)})}
 									/>
 							</div>
 							<div className="pokemon-flex">
