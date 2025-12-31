@@ -34,6 +34,9 @@ const PokemonGame = () => {
 	const [showModal, setShowModal] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [catchAttempts, setCatchAttempts] = useState(0); // 捕捉尝试次数
+	const [isAttacking, setIsAttacking] = useState(false); // 防止重复攻击
+	const [isCatching, setIsCatching] = useState(false); // 防止重复捕捉
+	const [isSelectingStarter, setIsSelectingStarter] = useState(false); // 防止重复选择初始精灵
 
 	// 初始化或加载玩家
 	useEffect(() => {
@@ -101,10 +104,17 @@ const PokemonGame = () => {
 
 	// 捕捉宝可梦
 	const handleCatch = async (pokeballTypeId) => {
+		// 防止重复捕捉
+		if (isCatching) {
+			return;
+		}
+
+		setIsCatching(true);
 		try {
 			// 检查宝可梦血量是否大于0
 			if (wildPokemon.hp <= 0) {
 				Message.error("宝可梦已经失去战斗能力，无法捕捉！");
+				setIsCatching(false);
 				return;
 			}
 			const data = await gameAPI.catchPokemon(player.id, wildPokemon, pokeballTypeId, selectedPokemon?.id);
@@ -165,11 +175,19 @@ const PokemonGame = () => {
 		} catch (error) {
 			Message.error("捕捉失败: " + (error.message || "未知错误"));
 			console.error("捕捉错误:", error);
+		} finally {
+			setIsCatching(false);
 		}
 	};
 
 	// 攻击
 	const handleAttack = async (isGym = false, attackType = "random") => {
+		// 防止重复点击
+		if (isAttacking) {
+			return;
+		}
+
+		setIsAttacking(true);
 		try {
 			const data = await gameAPI.attack(
 				selectedPokemon,
@@ -212,7 +230,7 @@ const PokemonGame = () => {
 					setWildPokemon(null);
 				}
 				// 重新加载玩家数据，从数据库获取更新后的金币
-				loadPlayer(player.id);
+				await loadPlayer(player.id);
 			} else {
 				setSelectedPokemon(data.playerPokemon);
 				if (isGym) {
@@ -228,6 +246,9 @@ const PokemonGame = () => {
 			setCurrentView("home");
 			setCurrentGym(null);
 			setWildPokemon(null);
+		} finally {
+			// 确保释放锁定状态
+			setIsAttacking(false);
 		}
 	};
 
@@ -322,6 +343,12 @@ const PokemonGame = () => {
 
 	// 选择初始宝可梦
 	const handleSelectStarter = async (starter) => {
+		// 防止重复选择
+		if (isSelectingStarter) {
+			return;
+		}
+
+		setIsSelectingStarter(true);
 		try {
 			const starterPokemon = {
 				id: starter.id,
@@ -346,6 +373,8 @@ const PokemonGame = () => {
 		} catch (error) {
 			console.error("选择初始精灵错误:", error);
 			Message.error(error.error || "选择失败，请重试");
+		} finally {
+			setIsSelectingStarter(false);
 		}
 	};
 

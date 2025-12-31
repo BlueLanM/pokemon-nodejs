@@ -327,6 +327,14 @@ export const attack = async(req, res) => {
 	try {
 		const { playerPokemon, enemyPokemon, isGym, attackType } = req.body;
 
+		// 防止重复结算：如果敌人已经被击败，直接返回
+		if (enemyPokemon.hp <= 0) {
+			return res.status(400).json({
+				error: "战斗已结束",
+				success: false
+			});
+		}
+
 		// 玩家宝可梦攻击
 		let playerDamage = 0;
 		let attackName = "攻击";
