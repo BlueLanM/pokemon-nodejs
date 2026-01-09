@@ -73,11 +73,9 @@ app.use(async(req, res, next) => {
 // Vercel Serverless 导出
 export default app;
 
-// 本地开发模式
-if (process.env.NODE_ENV !== "production") {
-	const PORT = process.env.PORT || 5000;
-	app.listen(PORT, async() => {
-		console.log(`Server running on port ${PORT}`);
-		await initialize();
-	});
-}
+// 启动服务器（Zeabur、本地开发）
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, async() => {
+	console.log(`Server running on port ${PORT}`);
+	await initialize();
+});
