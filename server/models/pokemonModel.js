@@ -3,14 +3,15 @@ import { query } from "../config/database.js";
 // 获取所有 Pokemon
 export async function getAllPokemons() {
 	const sql = "SELECT * FROM pokemons ORDER BY id";
-	return await query(sql);
+	const [rows] = await query(sql);
+	return rows;
 }
 
 // 根据 ID 获取单个 Pokemon
 export async function getPokemonById(id) {
 	const sql = "SELECT * FROM pokemons WHERE id = ?";
-	const results = await query(sql, [id]);
-	return results[0];
+	const [rows] = await query(sql, [id]);
+	return rows[0];
 }
 
 // 创建新的 Pokemon
@@ -20,7 +21,7 @@ export async function createPokemon(pokemonData) {
     INSERT INTO pokemons (name, type)
     VALUES (?, ?)
   `;
-	const result = await query(sql, [name, type]);
+	const [, result] = await query(sql, [name, type]);
 	return result.insertId;
 }
 
