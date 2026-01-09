@@ -1,0 +1,7 @@
+{
+  "app_name": "PokeLanM Server",
+  "build_command": "npm install",
+  "start_command": "node index.js",
+  "install_command": "npm install",
+  "framework": "nodejs"
+}
