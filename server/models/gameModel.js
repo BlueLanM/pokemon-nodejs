@@ -895,14 +895,20 @@ export const addToPokedex = async(playerId, pokemon) => {
 				[playerId, pokemon.id, pokemon.name, pokemon.name_en || pokemon.name, pokemon.sprite]
 			);
 
-			// 检查是否完成全图鉴
-			await checkAndAwardFullPokedex(playerId);
+			// 检查是否完成全图鉴（可能失败，但不影响主流程）
+			try {
+				await checkAndAwardFullPokedex(playerId);
+			} catch (checkError) {
+				console.error("检查全图鉴徽章失败（不影响主流程）:", checkError);
+			}
 
 			return { isNew: true };
 		}
 	} catch (error) {
-		console.error("Error adding to pokedex:", error);
-		return { isNew: false };
+		console.error("添加到图鉴失败:", error);
+		console.error("pokemon数据:", pokemon);
+		// 重新抛出错误，让上层处理
+		throw new Error(`添加到图鉴失败: ${error.message}`);
 	}
 };
 
