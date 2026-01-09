@@ -509,15 +509,16 @@ const PokemonGame = () => {
 
 		setIsSelectingStarter(true);
 		try {
-			const starterPokemon = {
-				id: starter.id,
-				name: starter.name,
-				sprite: `https://raw.githubusercontent.com/NightCatSama/pokedex/main/images/gif/${starter.id}.gif`,
-				level: 5,
-				hp: 45,
-				max_hp: 45,
-				attack: 15
-			};
+		const starterPokemon = {
+			id: starter.id,
+			name: starter.name,
+			name_en: starter.name_en || starter.name, // 添加英文名称
+			sprite: `https://raw.githubusercontent.com/NightCatSama/pokedex/main/images/gif/${starter.id}.gif`,
+			level: 5,
+			hp: 45,
+			max_hp: 45,
+			attack: 15
+		};
 
 			// 使用专门的选择初始精灵API，100%成功，不消耗精灵球
 			const result = await gameAPI.selectStarter(player.id, starterPokemon);

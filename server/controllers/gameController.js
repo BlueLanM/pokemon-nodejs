@@ -50,7 +50,7 @@ export const registerPlayer = async(req, res) => {
 };
 
 // 批量检查宝可梦进化状态（优化版）
-export const checkBatchEvolution = async (req, res) => {
+export const checkBatchEvolution = async(req, res) => {
 	try {
 		const { pokemonIds } = req.body; // 接收宝可梦ID数组
 
@@ -60,7 +60,7 @@ export const checkBatchEvolution = async (req, res) => {
 
 		// 批量查询所有宝可梦的进化状态
 		const results = await Promise.all(
-			pokemonIds.map(async (id) => {
+			pokemonIds.map(async(id) => {
 				try {
 					const result = await GameModel.checkEvolution(parseInt(id));
 					return {
@@ -255,13 +255,19 @@ export const selectStarter = async(req, res) => {
 				success: true
 			});
 		} else {
+			// 更详细的错误信息
+			console.error(`选择初始宝可梦失败: playerId=${playerId}, pokemon=`, pokemon);
 			return res.status(500).json({
-				error: "选择初始宝可梦失败",
+				error: "选择初始宝可梦失败，背包可能已满",
 				success: false
 			});
 		}
 	} catch (error) {
-		res.status(500).json({ error: error.message });
+		console.error("selectStarter错误:", error);
+		res.status(500).json({
+			error: error.message || "服务器内部错误",
+			success: false
+		});
 	}
 };
 
