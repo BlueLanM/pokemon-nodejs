@@ -82,6 +82,7 @@ router.get("/game/level-from-exp/:exp", gameController.getLevelFromExp);
 
 // 宝可梦进化系统
 router.get("/game/evolution/check/:partyId", gameController.checkPokemonEvolution);
+router.post("/game/evolution/check-batch", gameController.checkBatchEvolution); // 批量检查进化状态
 router.post("/game/evolution/evolve/:partyId", gameController.evolvePokemon);
 
 export default router;

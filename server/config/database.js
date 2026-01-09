@@ -49,7 +49,17 @@ async function query(sql, params = []) {
 	} else {
 		// PostgreSQL: 将 ? 转为 $1, $2, $3...
 		let index = 1;
-		const pgSql = sql.replace(/\?/g, () => `$${index++}`);
+		let pgSql = sql.replace(/\?/g, () => `$${index++}`);
+
+		// 自动为 INSERT 语句添加 RETURNING id（如果没有的话）
+		if (/^\s*INSERT\s+INTO/i.test(pgSql) && !/RETURNING/i.test(pgSql)) {
+			pgSql = pgSql.trim();
+			// 移除末尾的分号（如果有）
+			if (pgSql.endsWith(";")) {
+				pgSql = pgSql.slice(0, -1);
+			}
+			pgSql += "RETURNING id";
+		}
 
 		const result = await pgPool.query(pgSql, params);
 

@@ -49,6 +49,45 @@ export const registerPlayer = async(req, res) => {
 	}
 };
 
+// 批量检查宝可梦进化状态（优化版）
+export const checkBatchEvolution = async (req, res) => {
+	try {
+		const { pokemonIds } = req.body; // 接收宝可梦ID数组
+
+		if (!pokemonIds || !Array.isArray(pokemonIds) || pokemonIds.length === 0) {
+			return res.status(400).json({ error: "缺少宝可梦ID列表" });
+		}
+
+		// 批量查询所有宝可梦的进化状态
+		const results = await Promise.all(
+			pokemonIds.map(async (id) => {
+				try {
+					const result = await GameModel.checkEvolution(parseInt(id));
+					return {
+						pokemonId: id,
+						...result
+					};
+				} catch (error) {
+					return {
+						pokemonId: id,
+						success: false,
+						canEvolve: false,
+						message: error.message
+					};
+				}
+			})
+		);
+
+		res.json({
+			success: true,
+			evolutions: results
+		});
+	} catch (error) {
+		console.error("批量检查进化状态错误:", error);
+		res.status(500).json({ error: error.message });
+	}
+};
+
 // 登录
 export const loginPlayer = async(req, res) => {
 	try {

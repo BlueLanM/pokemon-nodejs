@@ -103,6 +103,11 @@ export const checkPokemonEvolution = (partyId) => {
   return request.get(`/game/evolution/check/${partyId}`);
 };
 
+// 批量检查进化状态
+export const checkBatchEvolution = (pokemonIds) => {
+  return request.post('/game/evolution/check-batch', { pokemonIds });
+};
+
 export const evolvePokemon = (partyId, playerId) => {
   return request.post(`/game/evolution/evolve/${partyId}`, { playerId });
 };

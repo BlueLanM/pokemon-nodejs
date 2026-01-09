@@ -451,21 +451,21 @@ const PokemonGame = () => {
 	// 批量检查宝可梦的进化状态
 	const checkPokemonEvolutionStates = async (pokemonList) => {
 		try {
-			const states = {};
-			// 批量异步检查所有宝可梦
-			await Promise.all(
-				pokemonList.map(async (pokemon) => {
-					try {
-						const data = await gameAPI.checkPokemonEvolution(pokemon.id);
-						// 只有当宝可梦满足进化条件时(不是最终形态且等级足够),才设置为true
-						states[pokemon.id] = data.success && data.canEvolveNow === true;
-					} catch (error) {
-						// 出错时默认为不可进化
-						states[pokemon.id] = false;
-					}
-				})
-			);
-			setEvolutionStates(prevStates => ({ ...prevStates, ...states }));
+			if (!pokemonList || pokemonList.length === 0) return;
+			
+			const pokemonIds = pokemonList.map(p => p.id);
+			// 使用批量接口，一次性请求所有宝可梦的进化状态
+			const data = await gameAPI.checkBatchEvolution(pokemonIds);
+			
+			if (data.success && data.evolutions) {
+				const states = {};
+				data.evolutions.forEach((evolution, index) => {
+					const pokemonId = pokemonIds[index];
+					// 只有当宝可梦满足进化条件时(不是最终形态且等级足够),才设置为true
+					states[pokemonId] = evolution.success && evolution.canEvolveNow === true;
+				});
+				setEvolutionStates(prevStates => ({ ...prevStates, ...states }));
+			}
 		} catch (error) {
 			console.error("检查进化状态失败:", error);
 		}
