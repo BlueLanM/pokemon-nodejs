@@ -69,18 +69,18 @@ export const checkBatchEvolution = async(req, res) => {
 					};
 				} catch (error) {
 					return {
-						pokemonId: id,
-						success: false,
 						canEvolve: false,
-						message: error.message
+						message: error.message,
+						pokemonId: id,
+						success: false
 					};
 				}
 			})
 		);
 
 		res.json({
-			success: true,
-			evolutions: results
+			evolutions: results,
+			success: true
 		});
 	} catch (error) {
 		console.error("批量检查进化状态错误:", error);
@@ -600,6 +600,14 @@ export const buyItem = async(req, res) => {
 	try {
 		const { playerId, pokeballTypeId, quantity } = req.body;
 
+		if (!playerId) {
+			return res.status(400).json({ error: "玩家ID不能为空" });
+		}
+
+		if (!pokeballTypeId) {
+			return res.status(400).json({ error: "精灵球类型ID不能为空" });
+		}
+
 		if (!quantity || quantity <= 0) {
 			return res.status(400).json({ error: "购买数量必须大于0" });
 		}
@@ -617,6 +625,7 @@ export const buyItem = async(req, res) => {
 			res.status(400).json({ error: result.message });
 		}
 	} catch (error) {
+		console.error("购买物品错误:", error);
 		res.status(500).json({ error: error.message });
 	}
 };
