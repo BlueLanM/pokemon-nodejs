@@ -537,21 +537,37 @@ export const getPlayerItems = async(playerId) => {
 export const updateItemQuantity = async(playerId, pokeballTypeId, quantity) => {
 	const DB_TYPE = process.env.DB_TYPE || "mysql";
 
-	if (DB_TYPE === "mysql") {
+	if (DB_TYPE === "postgresql") {
+		// PostgreSQL: 使用 ON CONFLICT ... DO UPDATE
+		// 注意：这里不使用 ?，而是直接使用 $1, $2, $3，因为 database.js 会进行替换
+		const [existingItem] = await pool.query(
+			`SELECT quantity FROM player_items 
+			 WHERE player_id = ? AND pokeball_type_id = ?`,
+			[playerId, pokeballTypeId]
+		);
+
+		if (existingItem && existingItem.length > 0) {
+			// 更新现有记录
+			await pool.query(
+				`UPDATE player_items 
+				 SET quantity = quantity + ? 
+				 WHERE player_id = ? AND pokeball_type_id = ?`,
+				[quantity, playerId, pokeballTypeId]
+			);
+		} else {
+			// 插入新记录
+			await pool.query(
+				`INSERT INTO player_items (player_id, pokeball_type_id, quantity)
+				 VALUES (?, ?, ?)`,
+				[playerId, pokeballTypeId, quantity]
+			);
+		}
+	} else {
 		// MySQL: 使用 ON DUPLICATE KEY UPDATE
 		await pool.query(
 			`INSERT INTO player_items (player_id, pokeball_type_id, quantity)
 	     VALUES (?, ?, ?)
 	     ON DUPLICATE KEY UPDATE quantity = quantity + ?`,
-			[playerId, pokeballTypeId, quantity, quantity]
-		);
-	} else {
-		// PostgreSQL: 使用 ON CONFLICT ... DO UPDATE
-		await pool.query(
-			`INSERT INTO player_items (player_id, pokeball_type_id, quantity)
-	     VALUES (?, ?, ?)
-	     ON CONFLICT (player_id, pokeball_type_id) 
-	     DO UPDATE SET quantity = player_items.quantity + ?`,
 			[playerId, pokeballTypeId, quantity, quantity]
 		);
 	}
